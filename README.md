@@ -96,12 +96,267 @@ docker.io/library/nginx:latest
 
 Kalau kita perhatikan docker mendownload beberapa layer kemudian membuat image.
 
-### ✅ Mengetahui Informasi dalam Image
+### ✅ Mengetahui Informasi dalam Image (Inspect)
 
 Perintah `docker image inspect` digunakan untuk menampilkan informasi detail dari satu image atau lebih.
 
 ```
 $ docker image inspect <nama_image>:<tag>
+```
+
+#### ✔️ Docker Container Inspect
+
+* Kita akan melakukan pull dan menjalankan container Nginx Alpine:
+
+```
+docker container run --rm nginx:1.23.3-alpine-slim
+```
+
+* Setelah container berjalan kemudian di terminal baru kita melakukan inspect untuk mengetahui informasi dari container yang berjalan:
+
+```
+$ docker container ps
+
+CONTAINER ID   IMAGE                      COMMAND                  CREATED          STATUS          PORTS     NAMES
+c9c4704598ca   nginx:1.23.3-alpine-slim   "/docker-entrypoint.…"   26 seconds ago   Up 25 seconds   80/tcp    friendly_chandrasekhar
+```
+
+Dapat dilihat sedang berjalan container dengan id `c9c4704598ca` dengan nama `friendly_chandrasekhar`. Kita bisa melakukan inspect untuk mengetaui informasi detail dari container dengan perintah `docker container inspect <id_container>`.
+
+Contoh:
+
+```
+$ docker container inspect c9c4704598ca
+
+[
+    {
+        "Id": "c9c4704598ca925d609d7e293098c3948c5de214a64d26cc0a936ce0c8eb5fd3",
+        "Created": "2025-03-27T15:01:16.837849041Z",
+        "Path": "/docker-entrypoint.sh",
+        "Args": [
+            "nginx",
+            "-g",
+            "daemon off;"
+        ],
+        "State": {
+            "Status": "running",
+            "Running": true,
+            "Paused": false,
+            "Restarting": false,
+            "OOMKilled": false,
+            "Dead": false,
+            "Pid": 50471,
+            "ExitCode": 0,
+            "Error": "",
+            "StartedAt": "2025-03-27T15:01:17.076870388Z",
+            "FinishedAt": "0001-01-01T00:00:00Z"
+        },
+        "Image": "sha256:c590972254923ed7847ab22756bdd8d6a3529a099cb1ea59663daabfa3fd940b",
+        "ResolvConfPath": "/var/lib/docker/containers/c9c4704598ca925d609d7e293098c3948c5de214a64d26cc0a936ce0c8eb5fd3/resolv.conf",
+        "HostnamePath": "/var/lib/docker/containers/c9c4704598ca925d609d7e293098c3948c5de214a64d26cc0a936ce0c8eb5fd3/hostname",
+        "HostsPath": "/var/lib/docker/containers/c9c4704598ca925d609d7e293098c3948c5de214a64d26cc0a936ce0c8eb5fd3/hosts",
+        "LogPath": "/var/lib/docker/containers/c9c4704598ca925d609d7e293098c3948c5de214a64d26cc0a936ce0c8eb5fd3/c9c4704598ca925d609d7e293098c3948c5de214a64d26cc0a936ce0c8eb5fd3-json.log",
+        "Name": "/friendly_chandrasekhar",
+        "RestartCount": 0,
+        "Driver": "overlay2",
+        "Platform": "linux",
+        "MountLabel": "",
+        "ProcessLabel": "",
+        "AppArmorProfile": "",
+        "ExecIDs": null,
+        "HostConfig": {
+            "Binds": null,
+            "ContainerIDFile": "",
+            "LogConfig": {
+                "Type": "json-file",
+                "Config": {}
+            },
+            "NetworkMode": "bridge",
+            "PortBindings": {},
+            "RestartPolicy": {
+                "Name": "no",
+                "MaximumRetryCount": 0
+            },
+            "AutoRemove": true,
+            "VolumeDriver": "",
+            "VolumesFrom": null,
+            "ConsoleSize": [
+                32,
+                117
+            ],
+            "CapAdd": null,
+            "CapDrop": null,
+            "CgroupnsMode": "private",
+            "Dns": [],
+            "DnsOptions": [],
+            "DnsSearch": [],
+            "ExtraHosts": null,
+            "GroupAdd": null,
+            "IpcMode": "private",
+            "Cgroup": "",
+            "Links": null,
+            "OomScoreAdj": 0,
+            "PidMode": "",
+            "Privileged": false,
+            "PublishAllPorts": false,
+            "ReadonlyRootfs": false,
+            "SecurityOpt": null,
+            "UTSMode": "",
+            "UsernsMode": "",
+            "ShmSize": 67108864,
+            "Runtime": "runc",
+            "Isolation": "",
+            "CpuShares": 0,
+            "Memory": 0,
+            "NanoCpus": 0,
+            "CgroupParent": "",
+            "BlkioWeight": 0,
+            "BlkioWeightDevice": [],
+            "BlkioDeviceReadBps": [],
+            "BlkioDeviceWriteBps": [],
+            "BlkioDeviceReadIOps": [],
+            "BlkioDeviceWriteIOps": [],
+            "CpuPeriod": 0,
+            "CpuQuota": 0,
+            "CpuRealtimePeriod": 0,
+            "CpuRealtimeRuntime": 0,
+            "CpusetCpus": "",
+            "CpusetMems": "",
+            "Devices": [],
+            "DeviceCgroupRules": null,
+            "DeviceRequests": null,
+            "MemoryReservation": 0,
+            "MemorySwap": 0,
+            "MemorySwappiness": null,
+            "OomKillDisable": null,
+            "PidsLimit": null,
+            "Ulimits": [],
+            "CpuCount": 0,
+            "CpuPercent": 0,
+            "IOMaximumIOps": 0,
+            "IOMaximumBandwidth": 0,
+            "MaskedPaths": [
+                "/proc/asound",
+                "/proc/acpi",
+                "/proc/interrupts",
+                "/proc/kcore",
+                "/proc/keys",
+                "/proc/latency_stats",
+                "/proc/timer_list",
+                "/proc/timer_stats",
+                "/proc/sched_debug",
+                "/proc/scsi",
+                "/sys/firmware",
+                "/sys/devices/virtual/powercap"
+            ],
+            "ReadonlyPaths": [
+                "/proc/bus",
+                "/proc/fs",
+                "/proc/irq",
+                "/proc/sys",
+                "/proc/sysrq-trigger"
+            ]
+        },
+        "GraphDriver": {
+            "Data": {
+                "ID": "c9c4704598ca925d609d7e293098c3948c5de214a64d26cc0a936ce0c8eb5fd3",
+                "LowerDir": "/var/lib/docker/overlay2/49fc4bd96363c6f739ca2f35ae2087f53093d07fb4956fd66a5df7a9527171e0-init/diff:/var/lib/docker/overlay2/9e61f8870fb9aa944cab72faa74c67d1f1acfee546adf9fd4334a8d7b711dc8b/diff:/var/lib/docker/overlay2/1a2df0c47fa91619d00d07a216e7bcfc52b1f6650e7cdf3dc4b13e9ff117e925/diff:/var/lib/docker/overlay2/934aa84f0b5a4d186097a4288bd705eddcc01d62792cdfd65e0b8648738bb434/diff:/var/lib/docker/overlay2/284e42141dca97dca4dc8a5f88fcf8bdf9f9266ec05e911ba6beb982786c4ab7/diff:/var/lib/docker/overlay2/6adbd606ecd346cd917f0a71f88618e48b97cae4e87a04262309a787a708dee8/diff:/var/lib/docker/overlay2/eab1820c1678110ba74bae0106508df5405f213151bb082bbc1fd7308bff271b/diff",
+                "MergedDir": "/var/lib/docker/overlay2/49fc4bd96363c6f739ca2f35ae2087f53093d07fb4956fd66a5df7a9527171e0/merged",
+                "UpperDir": "/var/lib/docker/overlay2/49fc4bd96363c6f739ca2f35ae2087f53093d07fb4956fd66a5df7a9527171e0/diff",
+                "WorkDir": "/var/lib/docker/overlay2/49fc4bd96363c6f739ca2f35ae2087f53093d07fb4956fd66a5df7a9527171e0/work"
+            },
+            "Name": "overlay2"
+        },
+        "Mounts": [],
+        "Config": {
+            "Hostname": "c9c4704598ca",
+            "Domainname": "",
+            "User": "",
+            "AttachStdin": false,
+            "AttachStdout": true,
+            "AttachStderr": true,
+            "ExposedPorts": {
+                "80/tcp": {}
+            },
+            "Tty": false,
+            "OpenStdin": false,
+            "StdinOnce": false,
+            "Env": [
+                "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+                "NGINX_VERSION=1.23.3",
+                "PKG_RELEASE=1"
+            ],
+            "Cmd": [
+                "nginx",
+                "-g",
+                "daemon off;"
+            ],
+            "Image": "nginx:1.23.3-alpine-slim",
+            "Volumes": null,
+            "WorkingDir": "",
+            "Entrypoint": [
+                "/docker-entrypoint.sh"
+            ],
+            "OnBuild": null,
+            "Labels": {
+                "maintainer": "NGINX Docker Maintainers <docker-maint@nginx.com>"
+            },
+            "StopSignal": "SIGQUIT"
+        },
+        "NetworkSettings": {
+            "Bridge": "",
+            "SandboxID": "d103834c3b9694a455f5a0304ac5ca828409e7abee43a90b1d805bc40ae9e57a",
+            "SandboxKey": "/var/run/docker/netns/d103834c3b96",
+            "Ports": {
+                "80/tcp": null
+            },
+            "HairpinMode": false,
+            "LinkLocalIPv6Address": "",
+            "LinkLocalIPv6PrefixLen": 0,
+            "SecondaryIPAddresses": null,
+            "SecondaryIPv6Addresses": null,
+            "EndpointID": "e3803e8589f68e9c720f2e72ba06e52cda21055b95cf92c845f1c454d706d28b",
+            "Gateway": "172.17.0.1",
+            "GlobalIPv6Address": "",
+            "GlobalIPv6PrefixLen": 0,
+            "IPAddress": "172.17.0.2",
+            "IPPrefixLen": 16,
+            "IPv6Gateway": "",
+            "MacAddress": "8e:f7:27:6b:a9:ef",
+            "Networks": {
+                "bridge": {
+                    "IPAMConfig": null,
+                    "Links": null,
+                    "Aliases": null,
+                    "MacAddress": "8e:f7:27:6b:a9:ef",
+                    "DriverOpts": null,
+                    "GwPriority": 0,
+                    "NetworkID": "f439496455ee73efba625f0f6d678306d3be75621a65456c14d7f2f34de4e71f",
+                    "EndpointID": "e3803e8589f68e9c720f2e72ba06e52cda21055b95cf92c845f1c454d706d28b",
+                    "Gateway": "172.17.0.1",
+                    "IPAddress": "172.17.0.2",
+                    "IPPrefixLen": 16,
+                    "IPv6Gateway": "",
+                    "GlobalIPv6Address": "",
+                    "GlobalIPv6PrefixLen": 0,
+                    "DNSNames": null
+                }
+            }
+        }
+    }
+]
+```
+
+#### ✔️ Docker Container Inspect Filter
+
+Dalam dunia nyata kita biasanya hanya membutuhkan informasi tertentu saja. Kita dapat melakukan filter terhadap informasi yang dibutuhkan dalam instruksi Inspect.
+
+Contoh kasus dari contoh di atas, misalnya kita hanya membutuhkan Ip Address saja:
+
+```
+$ docker container inspect --format='{{.NetworkSettings.IPAddress}}' c9c4704598ca
+
+172.17.0.2
 ```
 
 ### ✅ Docker Image History
