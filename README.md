@@ -427,6 +427,144 @@ Menjalankan container sekaligus menghapusnya setelah selesai:
 docker container run --rm <nama_image>:<tag>
 ```
 
+>__Materi selanjutnya perlu menyelesaikan materi__:
+> * [Docker File](#3%EF%B8%8F⃣-docker-file)
+> * [Docker Build](#4%EF%B8%8F⃣-docker-build)
+
+### ✅ Konfigurasi Container
+
+Kita dapat melakukan konfigurasi image pada saat container dijalankan dengan melakukan override value pada konfigurasinya.
+
+Untuk melihat parameter konfigurasi:
+
+```
+docker container run --help
+```
+
+#### ✔️ Label
+
+Contoh kasus kita memiliki `dockerfile`:
+
+```docker
+FROM eclipse-temurin:21-jre
+LABEL version="1.0"
+LABEL maintainer="Ucup Topekox" email="ucup@gmail.com" environment="development"
+ENV DATABASE_NAME=perpustakaan
+COPY Hello.class Hello.class
+CMD ["java", "Hello"]
+```
+
+Kemudian kita build
+
+```
+docker image build -t topekox/label-demo:0.0.1 .
+```
+
+1. Membuat container dengan nama `without_label`. Container ini memiliki konfigurasi default dari image yang ada:
+
+```
+docker container run -it --name="without_label"  topekox/label-demo:0.0.1
+```
+
+Jika kita melakukan inspect maka konfigurasi yang muncul adalan default value.
+
+```
+$ docker container inspect without_label
+
+...
+"Labels": {
+                "email": "ucup@gmail.com",
+                "environment": "development",
+                "maintainer": "Ucup Topekox",
+                "org.opencontainers.image.ref.name": "ubuntu",
+                "org.opencontainers.image.version": "24.04",
+                "version": "1.0"
+            }
+...
+```
+
+2. Membuat container dengan nama `with_label`. Container ini memiliki konfigurasi yang di override dari image yang ada, dengan mengubah value `maintainer` menjadi `timposulabs.com`:
+
+```
+docker container run -it --name="with_label" --label="maintainer=timposulabs.com"  topekox/label-demo:0.0.1 
+```
+
+Inspect:
+
+```
+docker container inspect with_label
+```
+
+atau menampilkadn data yang spesifik:
+
+```
+docker container inspect with_label --format="{{.Config.Labels}}"
+```
+
+Atau
+
+```
+docker inspect without_label --format "{{.Config.Labels}}"
+```
+Output:
+
+```
+map[
+    email:ucup@gmail.com 
+    environment:development 
+    maintainer:timposulabs.com 
+    org.opencontainers.image.ref.name:ubuntu 
+    org.opencontainers.image.version:24.04 
+    version:1.0
+    ]
+```
+
+#### ✔️ Env
+
+Override value `Env`: Contoh kita akan menganti value `DATABASE_NAME` menjadi `book`:
+
+```
+docker container run -it --name="with_env" -e "DATABASE_NAME=book" topekox/label-demo:0.0.
+```
+
+Inspect:
+
+```
+$ docker inspect with_env --format="{{.Config.Env}}"
+
+[
+    DATABASE_NAME=book 
+    PATH=/opt/java/openjdk/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin 
+    JAVA_HOME=/opt/java/openjdk 
+    LANG=en_US.UTF-8 
+    LANGUAGE=en_US:en 
+    LC_ALL=en_US.UTF-8 
+    JAVA_VERSION=jdk-21.0.6+7
+]
+```
+
+#### ✔️ Workdir
+
+Opsi `workdir` digunakan untuk mengatur working direktori dan override pengaturan default. 
+
+Cek working direktori:
+
+```
+$ docker container run -it --rm topekox/label-demo:0.0.1 pwd
+
+/
+```
+
+Working direktori berada pada `/`. Untuk mengganti workdir misalnya ke direktori `/working`:
+
+```
+$ docker container run -it --rm --workdir="/working" topekox/label-demo:0.0.1 pwd
+
+/working
+```
+
+#### ✔️ User
+
 ### ✅ Menghentikan Container
 
 ```
@@ -530,6 +668,10 @@ Keterangan:
 2. Menjalankan `apt-get update && apt-get install curl -y` 
 3. Mejalankan perintah `/usr/bin/curl http://timposulabs.com`
 
+>__Materi selanjutnya perlu menyelesaikan materi__:
+> * [Docker File](#3%EF%B8%8F⃣-docker-file)
+> * [Docker Build](#4%EF%B8%8F⃣-docker-build)
+
 ### ✅ Instruksi `FROM`, `LABEL`
 
 * __FROM__ = untuk menentukan base image.
@@ -613,8 +755,6 @@ CMD ["/usr/bin/java", "--version"]
 ```
 
 Contoh melakukan build:
-
-> Materi build ada di materi selanjutnya.
 
 ```
 docker image build -t topekox/first-dockerfile:0.0.3 .
