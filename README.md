@@ -415,7 +415,7 @@ atau kita bisa membuat container sekaligus menjalankannya. Contoh menjalankan co
 docker container run -p 8080:80 nginx:stable
 ```
 
-Contoh mennjalankan container `nginx:stable` baru dengan beberapa properti (cek properti dengan perintah `--help`):
+Contoh mennjalankan container `nginx:stable` baru dengan beberapa properti `-d` (detach) untuk menjalankannya sebagai background (cek properti dengan perintah `--help`):
 
 ```
 docker run -d -p 8081:80 --name=nginx2 nginx:stable
@@ -427,11 +427,99 @@ Menjalankan container sekaligus menghapusnya setelah selesai:
 docker container run --rm <nama_image>:<tag>
 ```
 
->__Materi selanjutnya perlu menyelesaikan materi__:
+### ✅ Menghentikan Container
+
+```
+docker container stop contohhttpd
+```
+
+atau
+
+```
+docker container stop <container_id>
+```
+
+atau
+
+```
+docker container kill <container_id>
+```
+
+> Perbedaan `kill` dan `stop`
+> * `docker container stop`
+>   * sinyal yang dikirim adalah SIGTERM yang dimana container akan melakukan shutdown dan melakukan terminate semua prosesnya secara normal.
+>   * Jika dalam 10 detik container tersebut belum mati, maka sinyal yang akan dikirim adalah SIGKILL, yang akan memaksa container mati seketika itu juga.
+> * `docker container kill`
+>   * Sinyal yang dikirim langsung SIGKILL, yang artinya container akan dipaksa mati seketika itu juga.
+
+
+### ✅ Menghapus Container
+
+```
+docker container rm contohhttpd
+```
+
+atau
+
+```
+docker container rm <container_id>
+```
+
+> Untuk menghapus container harus dalam keadaan stop. Jika ingin menghapus container dalam keadaan running gunakan perintah 
+
+### ✅ Melihat Log
+
+```
+docker container logs contohtomcat
+```
+
+Melihat Log Realtime
+
+```
+docker container logs -f contohtomcat
+```
+
+### ✅ Docker Container Attach
+
+Fungsi Docker container attach adalah melampirkan input, output, dan error standar terminal ke kontainer yang sedang berjalan. Dengan begitu, Anda bisa melihat output atau mengendalikan kontainer secara interaktif. 
+
+```
+docker container attach <nama_container>
+```
+
+Dengan melakukan attach kita bisa langsung melihat log container secara realtime.
+
+### ✅ Docker Container Exec
+
+Docker Container Exec digunakan untuk menjalankan perintah pada container yang sedang berjalan.
+
+Contoh menjalankan perintah `ls` untuk melihat file dan folder dalam container `nginx`
+
+```
+docker container exec <nama_container> ls
+```
+
+Contoh lain menggunakan option `-i` `-t` (baca `--help`) masuk ke dalam perintah `bash` container:
+
+```
+docker container exec -it <nama_container> bash
+```
+
+### ✅ Copy file ke dalam Container
+
+Contoh kita akan copy file dari local ke dalam container dengan path `/usr/share/nginx/html/`
+
+```
+docker container cp <nama_file> <nama_container>:/usr/share/nginx/html/
+```
+
+### ✅ Menjalankan Container secara Imperatif
+
+Docker container secara imperatif adalah proses menjalankan perintah konfigurasi ketika menjalankan container. 
+
+>__Materi ini perlu memahami materi__:
 > * [Docker File](#3%EF%B8%8F⃣-docker-file)
 > * [Docker Build](#4%EF%B8%8F⃣-docker-build)
-
-### ✅ Konfigurasi Container
 
 Kita dapat melakukan konfigurasi image pada saat container dijalankan dengan melakukan override value pada konfigurasinya.
 
@@ -440,6 +528,8 @@ Untuk melihat parameter konfigurasi:
 ```
 docker container run --help
 ```
+
+Berikut di bawah ini beberapa contoh menjalankan container secara imperatif:
 
 #### ✔️ Label
 
@@ -565,89 +655,196 @@ $ docker container run -it --rm --workdir="/working" topekox/label-demo:0.0.1 pw
 
 #### ✔️ User
 
-### ✅ Menghentikan Container
+Opsi ini berguna untuk meng-assign sebuah user untuk menjalankan proses di dalam container.
 
-```
-docker container stop contohhttpd
-```
+Contoh sebuah `Dockerfile`:
 
-atau
-
-```
-docker container stop <container_id>
+```docker
+FROM ubuntu:24.04
+RUN groupadd -r topekox \
+	&& useradd -r -g topekox topekox
 ```
 
-atau
+Kemudian build:
 
 ```
-docker container kill <container_id>
+docker image build -t topekox/user-demo-imperatif:0.0.1 .
 ```
 
-> Perbedaan `kill` dan `stop`
-> * `docker container stop`
->   * sinyal yang dikirim adalah SIGTERM yang dimana container akan melakukan shutdown dan melakukan terminate semua prosesnya secara normal.
->   * Jika dalam 10 detik container tersebut belum mati, maka sinyal yang akan dikirim adalah SIGKILL, yang akan memaksa container mati seketika itu juga.
-> * `docker container kill`
->   * Sinyal yang dikirim langsung SIGKILL, yang artinya container akan dipaksa mati seketika itu juga.
-
-### ✅ Menghapus Container
+Jalankan container:
 
 ```
-docker container rm contohhttpd
+$ docker container run -it --rm --user=topekox topekox/user-demo-imperatif:0.0.1 whoami
+
+topekox
 ```
 
-atau
+### ✅ Self Healing Container
+
+Self Healing Container pada docker dapat dicapai dengan pengaturan restart policy, dimana pengaturan restart policy ini dapat konfigurasi secara imperatif dengan perintah `docker container run`. Dengan restart policy ini memungkinkan container melakukan restart ketika dia mati atau mengalami gangguan.
+
+Pada docker pengaturan restart policy ini setidaknya memiliki 4 mode:
+
+| Flag | Description |
+| --- | --- |
+| `no` | Saat container stop/mati maka container tidak akan melakukan restart otomatis (default) |
+| `on-failure` | Container akan melakukan restart jika container mengalami error, atau exit code yang dikirim bernilai selain 0  |
+| `always` | Container akan selalu di restart jika container mati, kecuali container dimatikan secara manual oleh user |
+| `unless-stopped` | Mirip dengan `always`, perbedaanya container tidak akan direstart jika container dimatikan (manual atau cara yang lain)  |
+
+> **Catatan**: 
+> * Restart Policy hanya berpengaruh jika container berhasil berjalan setidaknya 10 detik.
+> * Jika container mati secara manual, maka restart polcy akan diabaikan sampai docker daemon mengalami restart atau container secara manual direstart.
+
+1. Contoh membuat docker container dengan restart policy `always`:
 
 ```
-docker container rm <container_id>
+docker container run -it --name=nginx --restart=always nginx:1.23.3-alpine-slim
 ```
 
-> Untuk menghapus container harus dalam keadaan stop. Jika ingin menghapus container dalam keadaan running gunakan perintah 
-
-### ✅ Melihat Log
+2. Cek status di tab terminal baru: 
 
 ```
-docker container logs contohtomcat
+$ docker container ps
+
+CONTAINER ID   IMAGE                      COMMAND                  CREATED          STATUS          PORTS     NAMES
+ef59b25cac60   nginx:1.23.3-alpine-slim   "/docker-entrypoint.…"   13 seconds ago   Up 13 seconds   80/tcp    nginx
 ```
 
-Melihat Log Realtime
+Container sudah berjalan lebih dari 10 detik yaitu 13 detik.
+
+3. Kemudian matikan container dengan menekan `Ctrl + C`, kemudian kita cek lagi status containernya:
 
 ```
-docker container logs -f contohtomcat
+$ docker container ps
+
+CONTAINER ID   IMAGE                      COMMAND                  CREATED          STATUS         PORTS     NAMES
+ef59b25cac60   nginx:1.23.3-alpine-slim   "/docker-entrypoint.…"   28 seconds ago   Up 3 seconds   80/tcp    nginx
 ```
 
-### ✅ Docker Container Attach
+Maka container akan running otomatis dan sudah berjalan selama 3 detik.
 
-Fungsi Docker container attach adalah melampirkan input, output, dan error standar terminal ke kontainer yang sedang berjalan. Dengan begitu, Anda bisa melihat output atau mengendalikan kontainer secara interaktif. 
-
-```
-docker container attach <nama_container>
-```
-
-Dengan melakukan attach kita bisa langsung melihat log container secara realtime.
-
-### ✅ Docker Container Exec
-
-Docker Container Exec digunakan untuk menjalankan perintah pada container yang sedang berjalan.
-
-Contoh menjalankan perintah `ls` untuk melihat file dan folder dalam container `nginx`
+Untuk membuktikan kita dapat melihat lognya:
 
 ```
-docker container exec <nama_container> ls
+$ docker container logs nginx 
+
+...
+2025/03/30 05:50:47 [notice] 1#1: worker process 30 exited with code 0
+2025/03/30 05:50:47 [notice] 1#1: exit
+/docker-entrypoint.sh: /docker-entrypoint.d/ is not empty, will attempt to perform configuration
+...
 ```
 
-Contoh lain menggunakan option `-i` `-t` (baca `--help`) masuk ke dalam perintah `bash` container:
+Container sempat mengalami exit status 0.
+
+Jika kita melakukan stop container secara manual kemudian kit melakukan restart daemon / service docker maka container akan berjalan kembali setelah docker service berjalan.
+
+### ✅ Membuat Docker Image dari Container
+
+Membuat Docker Image dari Container biasanya digunakan untuk prototype saja, sehingga jangan digunakan dan tidak recommended.
+
+* Contoh misalnya kita membuat container nginx dengan port `8080`:
 
 ```
-docker container exec -it <nama_container> bash
+docker container run -p 8080:80 --name=my-nginx -d nginx:1.23.3-alpine-slim
 ```
 
-### ✅ Copy file ke dalam Container
-
-Contoh kita akan copy file dari local ke dalam container dengan path `/usr/share/nginx/html/`
+* Cek
 
 ```
-docker container cp <nama_file> <nama_container>:/usr/share/nginx/html/
+$ curl localhost:8080
+
+
+<!DOCTYPE html>
+<html>
+<head>
+<title>Welcome to nginx!</title>
+<style>
+html { color-scheme: light dark; }
+body { width: 35em; margin: 0 auto;
+font-family: Tahoma, Verdana, Arial, sans-serif; }
+</style>
+</head>
+<body>
+<h1>Welcome to nginx!</h1>
+<p>If you see this page, the nginx web server is successfully installed and
+working. Further configuration is required.</p>
+
+<p>For online documentation and support please refer to
+<a href="http://nginx.org/">nginx.org</a>.<br/>
+Commercial support is available at
+<a href="http://nginx.com/">nginx.com</a>.</p>
+
+<p><em>Thank you for using nginx.</em></p>
+</body>
+</html>
+```
+
+* Contoh misalnya kita mengganti halaman index dari nginx menjadi `index.html`:
+
+```html
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Hello World</title>
+</head>
+<body>
+    <h2>Hello World</h2>
+</body>
+</html>
+```
+
+* Copy file di atas ke dalam nginx container:
+
+```
+docker container cp index.html my-nginx:/usr/share/nginx/html
+```
+
+* Test
+
+```
+$ curl localhost:8080
+
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Hello World</title>
+</head>
+<body>
+    <h2>Hello World</h2>
+</body>
+</html>
+```
+
+* Membuild image baru dari container yang ada di atas menggunakan command `commit`:
+
+```
+docker container commit --author="Ucup" my-nginx topekox/my-nginx:0.0.1
+```
+
+* Menjalankan container dengan port nginx `8081`:
+
+```
+docker container run --rm -d -p 8081:80 topekox/my-nginx:0.0.1
+```
+
+* Test
+
+```
+$ curl localhost:8081
+
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Hello World</title>
+</head>
+<body>
+    <h2>Hello World</h2>
+</body>
+</html>
 ```
 
 ## 3️⃣ Docker File
