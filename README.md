@@ -1280,3 +1280,216 @@ Push
 ```
 docker image push topekox/first-image:1.0.0
 ```
+
+## 📖 Studi Kasus Spring Boot Docker
+
+Dalam kasus ini kita akan membuat project Spring Boot dengan REST API yang akan mengembalikan response:
+
+```json
+{"message":"Halo Bro"}
+```
+
+Untuk menjalankan aplikasi di Container ada beberapa yang perlu diperhatikan:
+
+* Perlu dependency (dalam kasus ini JRE)
+* Membuat Docker Image
+* Menjalankan Container dari Docker Image
+
+1. Membuat Dockerfile pada root project yang akan menjalankan file build spring boot `.jar` yang berada pada direktori `target/`.
+
+```docker
+FROM eclipse-temurin:21-jre-ubi9-minimal
+ARG JAR_FILE=target/*.jar
+COPY ${JAR_FILE} app.jar
+ENTRYPOINT [ "java", "-jar", "/app.jar" ]
+```
+
+2. Build menjadi docker image.
+
+```
+ docker image build -t topekox/hello-docker-springboot:0.0.1 .
+ ```
+
+ 3. Jalankan container dengan port `8080`.
+
+ ```
+ docker container run --name=hello-docker -p 8080:8080 topekox/hello-docker-springboot:0.0.1
+ ```
+
+4. Testing
+
+```json
+curl localhost:8080/api/hello
+
+{"message":"Halo Bro"}
+```
+
+### 👌 Best Practice
+
+Setelah berhasil membuat docker image dari project Spring Boot app, berikut beberapa best practice yang dapat digunakan:
+
+#### ✅ Menggunakan User non-root
+
+Secara default user yang digunakan dalam docker adalah root, hal ini tidak direkomendasikan dalam dunia security, jadi direkomendasikan menggunakan akses user non-root. 
+
+1. Mengubah dockerfile membuat user `ucup` dan membuat workdir.
+
+```docker
+FROM eclipse-temurin:21-jre-ubi9-minimal
+ARG JAR_FILE=target/*.jar
+WORKDIR /app
+COPY ${JAR_FILE} app.jar
+RUN useradd ucup
+USER ucup
+ENTRYPOINT [ "java", "-jar", "app.jar" ]
+```
+
+2. Build image
+
+```
+docker image build -t topekox/hello-docker-springboot:0.0.2 .
+```
+
+3. Jalankan container
+
+```
+docker container run --name=hello-docker -p 8080:8080 topekox/hello-docker-springboot:0.0.2 
+```
+
+4. Masuk ke shell
+
+Buka terminal baru, dan masuk ke dalam mode shell
+
+```
+$ docker container exec -it springboot-app sh
+
+sh-5.1$ ls
+app.jar
+sh-5.1$ pwd
+/app
+sh-5.1$ whoami
+ucup
+```
+
+#### ✅ Menggunakan Multistage Build
+
+Docker multi-stage build adalah teknik dalam pembuatan image Docker yang memungkinkan Anda menggunakan beberapa tahap (stage) dalam satu Dockerfile. Setiap tahap dapat menggunakan image dasar (base image) yang berbeda, dan Anda dapat menyalin artefak dari satu tahap ke tahap lainnya.
+
+Contoh kasus sebelumnya kita akan melakukan beberapa stage. Contoh dalam project aplikasi spring boot kita akan membuat container melakukan compile sendiri terhada project spring boot, kemudian di stage berikutnya menjalankan aplikasi spring boot app: 
+
+* Install image JDK.
+* Membuat `workdir`.
+* Copy file `.mvn` ke dalam image.
+* Copy file `mvnw` ke dalam image.
+* Copy file `pom.xml` ke dalam image.
+* Berikan akses `mvnw` agar bisa dieksekusi.
+* Copy `src` ke dalam image.
+* Clean project.
+* Selanjutnya pada stage berikutnya kita melakukan copy `--from=builder`.
+
+1.Konfigurasi Dockerfile
+
+```docker
+FROM eclipse-temurin:21-jdk-ubi9-minimal AS builder
+WORKDIR /app
+COPY .mvn/ .mvn
+COPY mvnw .
+COPY pom.xml .
+
+RUN chmod +x ./mvnw && ./mvnw dependency:go-offline
+COPY ./src ./src
+RUN ./mvnw clean install
+
+FROM eclipse-temurin:21-jre-ubi9-minimal
+ARG JAR_FILE=target/*.jar
+WORKDIR /app
+COPY --from=builder /app/${JAR_FILE} /app/app.jar
+RUN useradd ucup
+USER ucup
+ENTRYPOINT [ "java", "-jar", "app.jar" ]
+```
+
+2. Clean project
+
+```
+mvn clean
+```
+
+3. Build Image
+
+```
+docker image build -t topekox/hello-docker-springboot:multistage-0.0.1 .
+```
+
+4. Jalankan Container
+
+```
+docker container run --rm --name=spring-boot-app-multistage -p 8080:8080 topekox/hello-docker-springboot:multistage-0.0.1
+```
+
+5. Testing
+
+```json
+curl localhost:8080/api/hello
+
+{"message":"Halo Bro"}
+```
+
+#### ✅ Menggunakan Layered `Jar`
+
+Docker Image Layered
+![Docker Layer Jar](https://www.baeldung.com/wp-content/uploads/2020/11/docker-layers.jpg)
+
+Docker image menerapkan sistem layering (lihat gambar di atas) dimana layer di bawah adalah Base Image, kemudian layer berikutnya misalnya layer A, kemudian layer B, terus paling atas adalah layer aplikasi kita dalam hal ini aplikasi `.jar`. Kita dapat mengoptimalkan hasil build aplikasi spring boot yang berekstensi `.jar`, dengan cara memecah, atau membagi ke dalam beberapa layer lagi. 
+
+Dalam hal ini jika ada perubahan kode program, kemudian dilakukan proses build, maka untuk layer Base Image sampai Layer B akan aman, karena tidak perlu dibuild ulang (bisa ambil ulang di cache). Sedangkan untuk layer aplikasi jar akan sering dibuild karena sering di ubah. Jadi solusinya layer jar (dalam hal ini aplikasi spring boot) akan dipecah menjadi beberapa layer lagi.
+
+![Spring Boot Layered jar](https://www.baeldung.com/wp-content/uploads/2020/11/spring-boot-layers.jpg)
+
+Spring Boot Layered Jar terdiri dari beberapa layer di antaranya:
+
+* `spring-boot-loader`
+* `dependencies`
+* `snapshot-dependencies`
+* `application`
+
+1. Konfigurasi `Dockerfile`
+    * Extract java jar `mvnw clean install && java -Djarmode=layertools -jar target/*.jar extract`.
+    * Copy from builder per layer `dependencies`,`spring-boot-loader`, `snapshot-dependencies` dan `application`.
+    * Ubah Entrypoint `org.springframework.boot.loader.launch.JarLauncher`.
+
+```docker
+FROM eclipse-temurin:21-jdk-ubi9-minimal AS builder
+WORKDIR /app
+COPY .mvn/ .mvn
+COPY mvnw .
+COPY pom.xml .
+
+RUN chmod +x ./mvnw && ./mvnw dependency:go-offline
+COPY ./src ./src
+RUN ./mvnw clean install && java -Djarmode=layertools -jar target/*.jar extract
+
+FROM eclipse-temurin:21-jre-ubi9-minimal
+ARG JAR_FILE=target/*.jar
+WORKDIR /app
+COPY --from=builder /app/dependencies/ ./
+COPY --from=builder /app/spring-boot-loader/ ./
+COPY --from=builder /app/snapshot-dependencies/ ./
+COPY --from=builder /app/application/ ./
+
+RUN useradd ucup
+USER ucup
+ENTRYPOINT ["java", "org.springframework.boot.loader.launch.JarLauncher"]
+```
+
+2. Build
+
+```
+docker image build -t topekox/hello-docker-springboot:layered-0.0.1 .
+```
+
+3. Jalankan Container
+
+```
+docker container run --rm  --name=spring-boot-app-layer -p 8080:8080 topekox/hello-docker-springboot:layered-0.0.1
+```
