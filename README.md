@@ -1493,3 +1493,288 @@ docker image build -t topekox/hello-docker-springboot:layered-0.0.1 .
 ```
 docker container run --rm  --name=spring-boot-app-layer -p 8080:8080 topekox/hello-docker-springboot:layered-0.0.1
 ```
+
+## 6️⃣ Docker Network
+
+Docker memiliki solusi untuk menyediakan fitur networking antar container, bernama **Container Network Model (CNM)**. CNM merupakan standar spesifikasi dan memerlukan implementasi salah satu implementasi tersebut adalah **libnetwork**. Selain itu docker juga memiliki **Driver** untuk jenis topologi jaringan yang berbeda-beda.
+
+![Container Network Model](https://thenewstack.io/wp-content/uploads/2016/09/Chart_Container-Network-Model-Drivers.png)
+
+CNM terdiri 3 block yaitu:
+1. **sandbox**: network yang terisolasi dalam container termasuk di dalamnya interface ethernet, port, dns config.
+2. **endpoint**: merupakan Virtual Ethernet Interface yang berfugsi membuat koneksi jaringan
+3. **network**: merupakan implementasi dari virtual switch yang mengelompokkan dan mengisolasi kumpulan endpoint yang saling berkomunikasi.
+
+![Container Network Model](https://www.dclessons.com/uploads/2019/09/Docker-7.2.png)
+
+Berikut gambaran besar dari Docker Network
+
+![CNN](https://k21academy.com/wp-content/uploads/2020/06/CNN-Model-1.png)
+
+#### ✅ Perintah Dasar
+
+Perintah dasar dari docker network adalah sbb:
+
+```
+docker network
+```
+
+| Commands | Description |
+| --- | --- |
+| `connect` |Connect a container to a network |
+| `create` | Create a network |
+| `disconnect` | Disconnect a container from a network |
+| `inspect` | Display detailed information on one or more networks |
+| `ls` | List networks |
+| `prune` | Remove all unused networks |
+| `rm` | Remove one or more networks |
+
+
+Melihat daftar docker network:
+
+```
+docker network ls
+```
+
+### ✅ Jenis-jenis Network
+
+Berikut ini adalah jenis type network (__Driver__) dalam docker
+
+* **bridge** : (default) merupakan jaringan jembatan ke sebuah virtual subnet yanh dikonfigurasi pada host (network berbeda dengan network mesin komputer host).
+* **host** : Container docker akan memiliki network yang sama dengan network komputer host.
+* **none** : Container tidak menggunakan driver network apapun.
+
+#### ✔️ Membuat Network Bridge
+
+Untuk melihat detail dari network bridge jalankan perintah:
+
+```
+docker network inspect bridge
+```
+
+Dapat dilihat pada bagian `Options`, bahwa default bridge name adalah `docker0`. Nama `docker0` dikonfigurasi dari dari sistem host (kernel linux), yang dapat dilihat dengan perintah `ip add`.
+
+> Untuk dapat melihat daftar bridge di linux kita dapat menginstall `bridge-utils` kemudian jalankan perintah `brctl show`.
+
+#### 1️⃣ Membuat Network Bridge tidak bersama Container
+
+1. Membuat network baru dengan drive bridge dan nama `topekox-network`:
+
+```
+docker network create -d bridge topekox-network
+```
+
+2. Melihat daftar network:
+
+```
+$ docker network ls
+
+22e1f5c81383   bridge            bridge    local
+bb6807dc5fdb   host              host      local
+9e53f3b177e5   none              null      local
+182a2e6f3e5a   topekox-network   bridge    local
+```
+
+Terdapat network baru dengan nama `topekox-network`.
+
+![docker network](/img/docker1.png)
+
+Dapat juga mengecek dari sisi kernel linux host:
+
+```
+brctl show
+ip addr
+```
+
+3. Run Container
+
+Misalnya menjalankan container tanpa opsi network:
+
+```
+docker container run --rm -d --name=spring-boot-app -p 8080:8080 topekox/hello-docker-springboot:layered-0.0.1 
+```
+
+Kemudian kita inspect:
+
+```
+docker network inspect bridge
+```
+
+Maka pada bagian `Containers` akan dibuat kan container dengan network bridge secara default dengan nama `docker0`.
+
+```json
+"Containers": {
+    "c5dcaf79e93bce444219d6721b12d7d257aaa9ac1bb68d7deea010ff10f0cd41": {
+        "Name": "spring-boot-app",
+        "EndpointID": "e80ceb999d3b2e3c11f33413463f837f39720e4cabca64f8068861854a1680dd",
+        "MacAddress": "ae:04:85:e9:09:e7",
+        "IPv4Address": "172.17.0.2/16",
+        "IPv6Address": ""
+    }
+}
+```
+
+4. Menghubungkan app ke network.
+
+Untuk menghubungkan aplikasi spring boot ke network yang sudah dibuat, menggunakan perintah `docker network connect <network_name container_name>`
+
+```
+docker network connect topekox-network spring-boot-app
+```
+
+Selanjutnya melakukan inspect docker network
+
+```
+docker network inspect topekox-network
+```
+Result:
+
+```json
+"Containers": {
+    "c5dcaf79e93bce444219d6721b12d7d257aaa9ac1bb68d7deea010ff10f0cd41": {
+        "Name": "spring-boot-app",
+        "EndpointID": "fdd6c5afca5f168d1367c1010d67f65ed124e5f8105d7825c1de0fd6185fd889",
+        "MacAddress": "02:a8:5e:cb:01:b0",
+        "IPv4Address": "172.19.0.2/16",
+        "IPv6Address": ""
+    }
+},
+```
+
+Maka seharusnya aplikasi spring boot sudah terhubung ke 2 jaringan yaitu `bridge` dan `topekox-network`.
+
+![docker network](/img/docker2.png)
+
+Inspect docker container:
+
+```
+docker container inspect spring-boot-app
+```
+
+Result:
+
+```json
+"Networks": {
+    "bridge": {
+        "IPAMConfig": null,
+        "Links": null,
+        "Aliases": null,
+        "MacAddress": "ae:04:85:e9:09:e7",
+        "DriverOpts": null,
+        "GwPriority": 0,
+        "NetworkID": "22e1f5c81383f15a86a3ebf568e6e1fb260212deab628d3a6f37b1d876458897",
+        "EndpointID": "e80ceb999d3b2e3c11f33413463f837f39720e4cabca64f8068861854a1680dd",
+        "Gateway": "172.17.0.1",
+        "IPAddress": "172.17.0.2",
+        "IPPrefixLen": 16,
+        "IPv6Gateway": "",
+        "GlobalIPv6Address": "",
+        "GlobalIPv6PrefixLen": 0,
+        "DNSNames": null
+    },
+    "topekox-network": {
+        "IPAMConfig": {},
+        "Links": null,
+        "Aliases": [],
+        "MacAddress": "02:a8:5e:cb:01:b0",
+        "DriverOpts": {},
+        "GwPriority": 0,
+        "NetworkID": "182a2e6f3e5aeef3b6086df77591af79a5fbe49960ff0111bddffb74a7724bd9",
+        "EndpointID": "fdd6c5afca5f168d1367c1010d67f65ed124e5f8105d7825c1de0fd6185fd889",
+        "Gateway": "172.19.0.1",
+        "IPAddress": "172.19.0.2",
+        "IPPrefixLen": 16,
+        "IPv6Gateway": "",
+        "GlobalIPv6Address": "",
+        "GlobalIPv6PrefixLen": 0,
+        "DNSNames": [
+            "spring-boot-app",
+            "c5dcaf79e93b"
+        ]
+    }
+}
+```
+
+#### 2️⃣ Membuat Network Bridge dengan Container
+
+Kita akan membuat 3 container dengan network yang sama yaitu container spring boot app, nginx dan busybox.
+
+> busybox adalah software yang menyediakan beberapa utilitas umum (contoh ping) yang biasanya digunakan pada linux dan unix.
+
+![docker networ](/img/docker3.png)
+
+1. Membuat network dengan container
+
+```
+docker container run --rm -d --name=spring-boot-app --network=topekox-network topekox/hello-docker-springboot:layered-0.0.1 
+```
+
+```
+docker container run --rm -d --name=webserver --network=topekox-network -p 80:80 nginx:stable-bullseye
+```
+
+```
+docker container run --rm -it --name=busybox --network=topekox-network busybox:stable
+```
+
+2. Inspect network `topekox-network`
+
+Buka tab terminal baru lalu inspect:
+
+```
+docker network inspect topekox-network
+```
+
+Terdapat 3 container dalam network:
+
+```json
+"Containers": {
+    "0949ea482b2f55094cc7a703d8871c529d9486e7c5b68817390d5961d41108a2": {
+        "Name": "busybox",
+        "EndpointID": "9e0a04fdae47b8562176df71b85ad10ff804d3ab450ce5e7ceeac9ede0e894f8",
+        "MacAddress": "be:da:d1:33:41:2e",
+        "IPv4Address": "172.19.0.4/16",
+        "IPv6Address": ""
+    },
+    "29441d29ff44cf19e2b3c0a34a939457cc2b06ea59fa9101f15fbe3aea246688": {
+        "Name": "webserver",
+        "EndpointID": "14f5669f4ef133a28797beff572c7657a7e40ef8d727c398e7f1858f9c06a2ce",
+        "MacAddress": "e6:8a:5f:c2:48:c5",
+        "IPv4Address": "172.19.0.3/16",
+        "IPv6Address": ""
+    },
+    "91321142f0d007cdefb624d84414fb3fb440f5fea0c4607c397b668c6d99979b": {
+        "Name": "spring-boot-app",
+        "EndpointID": "0522eda5224975c6431e8fef29197ededd5ed39f79e7be87462db4f653ff9301",
+        "MacAddress": "1a:4d:7b:c8:ac:99",
+        "IPv4Address": "172.19.0.2/16",
+        "IPv6Address": ""
+    }
+},
+```
+
+3. Test network dari busybox dengan `ping`:
+
+```
+ping 172.19.0.3
+
+ping 172.19.0.4
+```
+
+atau ping dengan nama contrainer
+
+```
+ping webserver
+
+ping spring-boot-app
+```
+
+cek aplikasi dengan `wget` karena `curl` tidak terdapat pada busybox
+
+```
+wget webserver
+
+wget spring-boot-app:8080/api/hello
+```
+
+
