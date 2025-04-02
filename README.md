@@ -1962,3 +1962,136 @@ Ketika kita melakukan ke alamat `http://localhost:5001/api/hello` maka ip addres
     "ipAddress": "172.19.0.3"
 }
 ```
+
+## 7️⃣ Docker Volume
+
+Setiap file sistem container dalam docker bersifat stateless atau berdiri sendiri, sehingga container tidak dirancang persistence atau untuk menyimpan data untuk waktu yang lama sehingga ketika container terhapus maka seluruh data dalam container tersebut akan terhapus juga.
+
+Untuk menyimpan data secara persistence maka dibutuhkan Docker Volume. Docker volume adalah satuan storage penyimpanan yang memiliki lifecycle berbeda dengan container, sehingga apabila container terhapus maka data dalam docker volume tetap ada. Docker volume juga dapat digunakan lebih dari 2 container sehingga dapat digunakan untuk share data antar container.
+
+### ✅ Membuat Docker Volume secara Imperative
+
+Kita dapat membuat docker volume secara imperative atau lansung menggunakan command saat membuat container.
+
+![Docker Volume](/img/docker-volume1.png)
+
+#### Membuat Docker Volume
+
+```
+docker volume create topekox-volume
+```
+
+Cek daftar volume:
+
+```
+docker volume ls
+
+DRIVER    VOLUME NAME
+local     topekox-volume
+```
+
+#### Membuat Container
+
+Membuat Container busybox dengan nama `busybox` yang terhubung dengan docker volume `topekox-volume` dan mount volume berada di `/data`:
+
+```
+docker container run -it --rm -v topekox-volume:/data --name busybox busybox:stable
+```
+
+Kita dapat memmbuat file dalam busybox dan menghapus containernya.
+
+```
+cd data
+/data # touch myfile
+/data # ls
+myfile
+```
+
+#### Melihat data Docker Volume di Host
+
+Untuk melihat lokasi data kita dapat melakukan inspect:
+
+```json
+$ docker volume inspect topekox-volume 
+
+[
+    {
+        "CreatedAt": "2025-04-02T22:51:30+08:00",
+        "Driver": "local",
+        "Labels": null,
+        "Mountpoint": "/var/lib/docker/volumes/topekox-volume/_data",
+        "Name": "topekox-volume",
+        "Options": null,
+        "Scope": "local"
+    }
+]
+```
+
+Dari hasil di atas lokasi data di komputer host adalah `/var/lib/docker/volumes/topekox-volume/_data`.
+
+Kita bisa melihat isi datanya dengan akses root komputer host:
+
+```
+$ sudo su -
+root@timposulabs:~# cd /var/lib/docker/volumes/topekox-volume/_data
+root@timposulabs:/var/lib/docker/volumes/topekox-volume/_data# ls
+myfile
+```
+
+File `myfile` yang dibuat pada container masih ada di docker volume.
+
+### ✅ Berbagi Docker Volume dan Menghapus Volume
+
+![Docker Volume](/img/docker-volume2.png)
+
+#### Share Docker Volume
+
+Disini kita akan membuat 2 docker container busybox dengan nama `busybox1` dan `busybox2`:
+
+* Buat container `busybox1`:
+
+```
+docker container run -it --rm -v topekox-volume:/data --name busybox1 busybox:stable
+```
+
+* Buka tab baru dan buat container `busybox2`:
+
+```
+docker container run -it --rm -v topekox-volume:/data --name busybox2 busybox:stable
+```
+
+* Pada `busybox2` kita akan membuat file baru:
+
+```
+/ # cd data 
+/data # ls
+myfile
+/data # echo "Halo Bro" > hello
+/data # cat hello 
+Halo Bro
+```
+
+* Pada `busybox1` melakukan pengecekan:
+
+```
+/data # ls
+myfile
+/data # ls
+hello   myfile
+/data # cat hello 
+Halo Bro
+```
+
+Dari sini kita sudah berhasil share data pada docker volume.
+
+
+#### Menghapus Docker Volume
+
+> **Catatan**: Sebelum menghapus volume pastikan container yang menggunakan volume-nya sudah mati.
+
+Untuk menghapus volume contoh nama volume `topekox-volume`:
+
+```
+docker volume rm topekox-volume 
+topekox-volume
+```
