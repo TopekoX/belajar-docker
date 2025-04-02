@@ -1777,4 +1777,188 @@ wget webserver
 wget spring-boot-app:8080/api/hello
 ```
 
+#### 3️⃣ Reverse Proxy dengan Nginx
 
+Kita akan menggunakan reverse proxy nginx dimana di kita memiliki 2 container yaitu:
+
+* Container `nginx`
+* Container `spring-boot-app`
+
+Yang mana nantinya request akan melalui container `nginx` terlebih dahulu kemudian di teruskan ke `spring-boot-app` yang berada dalam network yang sama.
+
+![docker reverse proxy](/img/docker4.png)
+
+1. Membuat konfigurasi nginx contoh dengan nama `reverse-proxy.conf`:
+
+```nginx
+server {
+  listen 80;
+  server_name spring-boot-app;
+
+  location / {
+    proxy_pass http://spring-boot-app:8080/;    
+  }
+}
+```
+
+2. Membuat dockerfile image dari base image nginx:
+
+```docker
+FROM nginx:stable-bullseye
+COPY reverse-proxy.conf /etc/nginx/conf.d/default.conf
+```
+
+3. Build image docker
+
+```
+docker image build -t topekox/nginx:0.0.1 .
+```
+
+4. Jalankan Container
+
+* Container Spring Boot App:
+
+```
+docker container run -d --rm --name spring-boot-app --network topekox-network topekox/hello-docker-springboot:layered-0.0.1
+```
+
+* Container Nginx:
+
+```
+docker container run -d --rm --name webserver --network topekox-network -p 80:80 topekox/nginx:0.0.1 
+```
+
+5. Cek inspect network:
+
+```json
+$ docker network inspect topekox-network 
+
+"Containers": {
+    "b811a895370099b2081ac50158eeeace68ea10c01284fa5ee4438e4c0df28fb4": {
+        "Name": "spring-boot-app",
+        "EndpointID": "c7d30afe5729ce236d3bf7b6823e565de34f4692cc302fde2630718e45307cb4",
+        "MacAddress": "86:d6:d1:2f:87:6b",
+        "IPv4Address": "172.19.0.2/16",
+        "IPv6Address": ""
+    },
+    "e99bd282f05c6e151a996a0a25ad607f96ed09ec5c1509d8799f81af3c83d486": {
+        "Name": "webserver",
+        "EndpointID": "dbc591ecd6731f57852aeebb9eafe5011a384935f66bdd8419eb2fc5fad4fed0",
+        "MacAddress": "4e:aa:b8:9c:dd:f6",
+        "IPv4Address": "172.19.0.3/16",
+        "IPv6Address": ""
+    }
+}
+```
+
+terdapat 2 container di dalam network `topekox-network`.
+
+6. Test
+
+```json
+$ curl localhost:80/api/hello
+
+{"message":"Halo Bro"}
+```
+
+#### 4️⃣ Load Balancer dengan Nginx
+
+Load balancing merupakan proses pendistribusian traffic atau lalu lintas jaringan secara efisien ke dalam sekelompok server, atau yang lebih dikenal dengan server pool atau server farm. Load balancing ini berguna agar salah satu server dari website yang mendapatkan banyak lalu linta kunjungan tidak mengalami kelebihan beban.
+
+Load balancer akan bekerja dengan cara mendistribusikan lalu lintas kunjungan ke dalam beberapa server demi memastikan tidak ada salah satu server yang mengalami kelebihan beban. Load balancer akan meminimalkan waktu respons server secara efektif.
+
+Contoh ilustrasi:
+
+![docker load balancer](/img/docker5.png)
+
+1. Mengubah aplikasi spring boot untuk menghasilkan REST API sbb:
+
+```json
+{
+    "ipAddress": "192.168.1.10",
+    "message": "Halo Bro",
+    "hostname": "timposulabs"
+}
+```
+
+2. Build image Spring Boot App
+
+```
+ docker image build -t topekox/hello-docker-springboot:layered-0.0.2 .
+```
+
+Sekarang kita memiliki image dari `hello-docker-springboot:layered-0.0.2`
+
+3. Membuat file `load-balancer.conf`:
+
+```nginx
+upstream backend {
+  server spring-boot-app-1:8080;
+  server spring-boot-app-2:8080;
+}
+
+server {
+  listen 80;
+
+  location / {
+    proxy_pass http://backend;
+  }
+}
+```
+
+4. Membuat `Dockerfile`:
+
+```docker
+FROM nginx:stable-bullseye
+COPY load-balancer.conf /etc/nginx/conf.d/default.conf
+```
+
+5. Membuat Docker Image Nginx:
+
+```
+docker image build -t topekox/nginx:0.0.2 .
+```
+
+6. Membuat Container:
+
+* Container `spring-boot-app-1`:
+
+```
+docker container run -d --rm --name spring-boot-app-1 --network topekox-network topekox/hello-docker-springboot:layered-0.0.2
+```
+
+* Container `spring-boot-app-2`:
+
+```
+docker container run -d --rm --name spring-boot-app-2 --network topekox-network topekox/hello-docker-springboot:layered-0.0.2
+```
+
+* Container web server nginx dengan mapping port `5001`
+
+```
+docker container run -d --rm --name webserver --network topekox-network -p 5001:80 topekox/nginx:0.0.2 
+```
+
+7. Testing
+
+Ketika kita melakukan ke alamat `http://localhost:5001/api/hello` maka ip addres yang di tampilkan akan berubah-ubah
+
+* Percobaan 1
+
+```json
+{
+    "hostname": "2d7a34bcb026",
+    "message": "Halo Bro",
+    "ipAddress": "172.19.0.2"
+}
+```
+
+* Percobaan 2
+
+```json
+{
+    "message": "Halo Bro",
+    "hostname": "99d567c5dd5d",
+    "ipAddress": "172.19.0.3"
+}
+```
