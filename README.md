@@ -1869,7 +1869,7 @@ Load balancer akan bekerja dengan cara mendistribusikan lalu lintas kunjungan ke
 
 Contoh ilustrasi:
 
-![docker load balancer](/img/docker5.png)
+![docker load balancer](/img/docker-loadbalancer.png)
 
 1. Mengubah aplikasi spring boot untuk menghasilkan REST API sbb:
 
