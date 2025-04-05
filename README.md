@@ -2096,7 +2096,7 @@ docker volume rm topekox-volume
 topekox-volume
 ```
 
-#### Menggunakan Database PostgreSQL
+### ✅ Menggunakan Database PostgreSQL
 
 > Baca dokumentasi resmi docker [PostgreSQL](https://hub.docker.com/_/postgres)
 
