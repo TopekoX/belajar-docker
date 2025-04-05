@@ -2093,7 +2093,6 @@ Untuk menghapus volume contoh nama volume `topekox-volume`:
 
 ```
 docker volume rm topekox-volume 
-topekox-volume
 ```
 
 ### ✅ Menggunakan Database PostgreSQL
