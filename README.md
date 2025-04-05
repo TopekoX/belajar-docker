@@ -2095,3 +2095,60 @@ Untuk menghapus volume contoh nama volume `topekox-volume`:
 docker volume rm topekox-volume 
 topekox-volume
 ```
+
+#### Menggunakan Database PostgreSQL
+
+> Baca dokumentasi resmi docker [PostgreSQL](https://hub.docker.com/_/postgres)
+
+* Buat Container postgres, di sini saya menggunakan Postgres versi 17.4:
+
+```
+docker container run -d --name my-postgresql -e POSTGRES_PASSWORD=test123 postgres:17.4
+```
+
+* Karena container tidak diekspose ke jaringan luar container kita harus masuk ke dalam container Postgres:
+
+```bash
+$ docker exec -it -u postgres my-postgresql psql
+
+psql (17.4 (Debian 17.4-1.pgdg120+2))
+Type "help" for help.
+
+postgres=# 
+```
+
+Jika kita membuat database di dalam container postgres saat ini, kemudian menghapus container tersebut maka data yang ada di dalam container tersebut akan terhapus juga, karena sifat container yang stateless. Walaupun kita membuat container baru maka database akan kembali baru. 
+
+Untuk keperluan tersebut di atas maka kita harus menambahkan volume ketika membuat container.
+
+* Buat Container postgres, dengan memounting volume nya ke `/var/lib/postgresql/data` (baca dokumentasi) dengan nama volume `postgres-data`:
+
+```
+docker container run -d --rm --name my-postgresql -e POSTGRES_PASSWORD=test123 -v postgres-data:/var/lib/postgresql/data postgres:17.4
+```
+
+* Masuk ke consol postgre docker:
+
+```
+docker exec -it -u postgres my-postgresql psql
+```
+
+* Buat Database:
+
+```sql
+postgres=# create database school;
+CREATE DATABASE
+postgres=# \l
+
+Name    |  Owner   | Encoding | Locale Provider |  Collate   |   Ctype    | Locale | ICU Rules |   Access privileges   
+-----------+----------+----------+-----------------+------------+------------+--------+-----------+-----------------------
+ postgres  | postgres | UTF8     | libc            | en_US.utf8 | en_US.utf8 |        |           | 
+ school    | postgres | UTF8     | libc            | en_US.utf8 | en_US.utf8 |        |           | 
+ template0 | postgres | UTF8     | libc            | en_US.utf8 | en_US.utf8 |        |           | =c/postgres          +
+           |          |          |                 |            |            |        |           | postgres=CTc/postgres
+ template1 | postgres | UTF8     | libc            | en_US.utf8 | en_US.utf8 |        |           | =c/postgres          +
+           |          |          |                 |            |            |        |           | postgres=CTc/postgres
+(4 rows)
+```
+
+* Untuk mengujinya silahkan keluar bash postgre kemudian hapus container, lalu buat container postgre yang baru masuk ke console postgre dan cek databasenya kembali.
