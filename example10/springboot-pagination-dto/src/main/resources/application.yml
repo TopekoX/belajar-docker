@@ -1,0 +1,28 @@
+# spring.datasource.url=jjdbc:postgresql://localhost:5432/springbootapp
+# spring.datasource.driverClassName=rg.postgresql.Driver
+# spring.datasource.username=postgres
+# spring.datasource.password=postgres
+# spring.jpa.database-platform=org.hibernate.dialect.PostgreSQLDialect
+# spring.jpa.show-sql=true
+# spring.jpa.hibernate.ddl-auto=update
+
+spring:
+  datasource:
+    hikari:
+      connection-timeout: 600000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+      maximum-pool-size: 10
+    url: jdbc:postgresql://${DATABASE_ADDR:localhost}/${DATABASE_NAME:springbootapp}?reWriteBatchedInserts=true
+    username: ${DATABASE_USERNAME:postgres}
+    password: ${DATABASE_PASSWORD:postgres}
+  jpa:
+    database: POSTGRESQL
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        jdbc:
+          batch_size: 100
+    show-sql: true

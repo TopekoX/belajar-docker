@@ -2151,3 +2151,38 @@ Name    |  Owner   | Encoding | Locale Provider |  Collate   |   Ctype    | Loca
 ```
 
 * Untuk mengujinya silahkan keluar bash postgre kemudian hapus container, lalu buat container postgre yang baru masuk ke console postgre dan cek databasenya kembali.
+
+## 📖 Studi Kasus Spring Boot Docker menggunakan Database dan Docker Volume
+
+Kita akan membuat 2 container Spring Boot yang masing-masing menggunakan database postgres dan docker volume dengan gambaran sebagai berikut:
+
+![docker spring boot postgres with volume](/img/docker5.png)
+
+### ✅ Membuat Container Database
+
+1. Membuat Container Database PostgreSQL
+
+```
+docker container run -d -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres --network topekox-network -v topekox-volume:/var/lib/postgresql/data --name postgresql postgres:17.4
+```
+
+2. Masuk ke dalam bash container
+
+```
+docker container exec -it postgresql bash
+```
+
+3. Masuk ke database, dan buat database:
+
+```
+root@61418a343f87:/# psql -U postgres
+
+psql (17.4 (Debian 17.4-1.pgdg120+2))
+Type "help" for help.
+
+postgres=# create database springbootapp;
+CREATE DATABASE
+postgres=#
+```
+
+4. 
