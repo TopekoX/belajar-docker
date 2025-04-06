@@ -2185,4 +2185,119 @@ CREATE DATABASE
 postgres=#
 ```
 
-4. 
+4. Membuat Image Spring Boot App
+
+Buat project Spring Boot, contoh project dapat dlihat [di sini](https://github.com/TopekoX/belajar-docker/tree/main/example10/springboot-pagination-dto).
+
+* Application Properties
+
+```yml
+spring:
+  datasource:
+    hikari:
+      connection-timeout: 600000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+      maximum-pool-size: 10
+    url: jdbc:postgresql://${DATABASE_ADDR:localhost}/${DATABASE_NAME:springbootapp}?reWriteBatchedInserts=true
+    username: ${DATABASE_USERNAME:postgres}
+    password: ${DATABASE_PASSWORD:postgres}
+  jpa:
+    database: POSTGRESQL
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        jdbc:
+          batch_size: 100
+    show-sql: true
+```
+
+* Dockerfile
+
+```docker
+FROM eclipse-temurin:21-jdk-ubi9-minimal AS builder
+WORKDIR /app
+COPY .mvn/ .mvn
+COPY mvnw .
+COPY pom.xml .
+
+RUN chmod +x ./mvnw && ./mvnw dependency:go-offline
+COPY ./src ./src
+RUN ./mvnw clean package -Dmaven.test.skip
+
+FROM eclipse-temurin:21-jre-ubi9-minimal AS layered
+WORKDIR /app
+ARG JAR_FILE=target/*.jar
+COPY --from=builder /app/${JAR_FILE} /app/app.jar
+RUN java -Djarmode=layertools -jar app.jar extract
+
+FROM eclipse-temurin:21-jre-ubi9-minimal
+ARG JAR_FILE=target/*.jar
+WORKDIR /app
+COPY --from=layered /app/dependencies/ ./
+COPY --from=layered /app/spring-boot-loader/ ./
+COPY --from=layered /app/snapshot-dependencies/ ./
+COPY --from=layered /app/application/ ./
+
+ENV DATABASE_ADDR=postgresql
+ENV DATABASE_NAME=springbootapp
+ENV DATABASE_USER=postgres
+ENV DATABASE_PASSWORD=postgres
+
+RUN useradd ucup
+USER ucup
+
+ENTRYPOINT ["java", "org.springframework.boot.loader.launch.JarLauncher"]
+```
+
+5. Build Image contoh dengan nama `topekox/springboot-dto-pagination:0.0.1`.
+
+6. Membuat container `spring-boot-app-1`:
+
+```
+docker container run -d --name spring-boot-app-1 -e DATABASE_ADDR=postgresql -e DATABASE_NAME=springbootapp -e DATABASE_USER=postgres -e DATABASE_PASSWORD=postgres --network topekox-network topekox/springboot-dto-pagination:0.0.1
+```
+
+> Setelah membuat container, kita dapat memeriksa database di dalam container postgresql, seharusnya sudah dibuatkan tabel oleh spring boot.
+
+7. Membuat container `spring-boot-app-2`:
+
+```
+docker container run -d --name spring-boot-app-2 -e DATABASE_ADDR=postgresql -e DATABASE_NAME=springbootapp -e DATABASE_USER=postgres -e DATABASE_PASSWORD=postgres --network topekox-network topekox/springboot-dto-pagination:0.0.1 
+```
+
+8. Membuat container nginx:
+
+* `Dockerfile`
+
+```docker
+FROM nginx:stable-bullseye
+COPY load-balancer.conf /etc/nginx/conf.d/default.conf
+```
+
+* `load-balancer.conf`
+
+```json
+upstream backend {
+  server spring-boot-app-1:8080;
+  server spring-boot-app-2:8080;
+}
+
+server {
+  listen 80;
+
+  location / {
+    proxy_pass http://backend;
+  }
+}
+```
+
+* buat container
+
+```
+docker container run -d --name nginx --network topekox-network -p 80:80 topekox/nginx:0.0.1
+```
+
+9. Uji coba dengan menggunakan cURL, postman dll. ke alamat `localhost:80/api/product`
