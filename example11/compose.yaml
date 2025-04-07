@@ -1,0 +1,22 @@
+services:
+  nginx:
+    image: nginx:stable-bullseye
+    ports:
+      - "8080:80"
+    networks:
+      - topekox-network
+  postgresql:
+    image: postgres:17.4
+    environment:
+      - POSTGRES_PASSWORD=postgres
+    networks:
+      - topekox-network
+    volumes:
+      - topekox-volume:/var/lib/postgresql/data
+networks:
+  topekox-network:
+    driver: bridge
+    external: true
+volumes:
+  topekox-volume:
+    driver: local

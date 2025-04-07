@@ -2301,3 +2301,204 @@ docker container run -d --name nginx --network topekox-network -p 80:80 topekox/
 ```
 
 9. Uji coba dengan menggunakan cURL, postman dll. ke alamat `localhost:80/api/product`
+
+## 8️⃣ Docker Compose
+
+Docker Compose adalah alat yang digunakan untuk mendefinisikan dan menjalankan aplikasi Docker multikontainer. Docker Compose dapat memudahkan pengelolaan layanan yang saling terhubung, seperti frontend, backend API, dan database. 
+
+Docker Compose dapat membantu: Mengotomatisasi eksekusi banyak kontainer dengan satu perintah, Menyatukan berbagai macam Dockerfile menjadi satu file, Menentukan tumpukan aplikasi dalam sebuah file, Memungkinkan orang lain untuk berkontribusi pada proyek, Mengembangkan aplikasi lokal. Docker Compose Menggunakan file YAML untuk mendefinisikan layanan.
+
+> [Dokumentasi Resmi YAML](https://yaml.org/)
+
+Secara default filename docker compose adalah `compose.yaml` atau `compose.yml` selain itu juga bisa `docker-compose.yml` atau `docker-compose.yaml`. Jika kedua file tersebut berada di direktori yang sama maka yang akan docker gunakan adalah `compose.yml`.
+
+> [Dokumentasi Docker Compose](https://docs.docker.com/compose/)
+
+Top Elemen dalam docker compose:
+
+* `services`
+* `networks`
+* `volumes`
+* `configs`
+* `secrets`
+
+### ✅ Membuat Docker Compose
+
+* Buat file `compose.yaml`:
+
+```yaml
+services:
+  nginx:
+    image: nginx:stable-bullseye
+    ports:
+      - "8080:80"
+```
+
+* Menjalankan script compose (harus berada di direktori yang sama):
+
+```
+docker compose up
+```
+
+* Test
+
+```
+curl localhost:8080
+```
+
+### ✅ Docker Compose Up & Down
+
+* `docker compose up` berfungsi untuk mendeploy aplikasi yang berada dalam script compose. Perintah ini akan mengunduh image, membuat container, network dan volume sesuai dengan docker compose.
+
+Untuk mengetahui perintah dalam `docker compose up` menggunakan perintah:
+
+```
+docker compose up --help
+```
+
+Contoh menjalankan `
+Untuk mengetahui perintah dalam `docker compose up --detach` untuk menjalakan docker compose pada background.
+
+* `docker compose down` berfungsi untuk mematikan sekaligus menghapus semua resource yang ada dalam `compose.yaml` baik itu container atau resource network.
+
+```
+docker compose down
+```
+
+Jika hanya ingin mematikan container saja tanpa mematikan resource network maka gunakan perintah:
+
+```
+docker compose stop
+```
+
+### ✅ Konfigurasi Network Docker Compose
+
+Kita akan menambahkan elemen network dalam docker compose. Contoh kita akan membuat nework dengan nama `topekox-network`, karena sebelumnya sudah ada network dengan nama tersebut maka kita perlu menambahkan `external:true`.
+
+```yaml
+services:
+  nginx:
+    image: nginx:stable-bullseye
+    ports:
+      - "8080:80"
+networks:
+  topekox-networks:
+    driver: bridge
+    external: true
+```
+
+Lakukan `docker compose up` dan untuk mengecek jalankan perintah:
+
+```json
+$ docker network inspect topekox-network 
+
+"Containers": {
+            "502316f437661f97212fa832be10e75f864aad34ffdb4eeaaf3318e71c879ede": {
+                "Name": "example11-nginx-1",
+                "EndpointID": "25b16c0bcd22b9d6dd90d13e29e21b98710a84cd16eff120e917b8deee2e7529",
+                "MacAddress": "6e:93:20:dc:ff:81",
+                "IPv4Address": "172.19.0.2/16",
+                "IPv6Address": ""
+            }
+        },
+```
+
+### ✅ Konfigurasi Volume Docker Compose
+
+Disini kita akan menambahakan volume dan menambahkan konfigurasi postgresql seperti materi sebelumnya.
+
+* Ubah file `compose.yaml` menambahkan `volume` dan service dan konfigurasi untuk `postgresql`:
+
+```yaml
+services:
+  nginx:
+    image: nginx:stable-bullseye
+    ports:
+      - "8080:80"
+    networks:
+      - topekox-network
+  postgresql:
+    image: postgres:17.4
+    environment:
+      - POSTGRES_PASSWORD=postgres
+    networks:
+      - topekox-network
+    volumes:
+      - topekox-volume:/var/lib/postgresql/data
+networks:
+  topekox-network:
+    driver: bridge
+    external: true
+volumes:
+  topekox-volume:
+    driver: local
+```
+
+* Kemudian lakukan up:
+
+```
+docker compose up
+```
+
+* Cek container yang run
+
+```
+docker container ls
+```
+
+* Masuk ke dalam postresql dan buat database `school`:
+
+```
+$ docker container exec -it -u postgres example11-postgresql-1 psql
+
+
+psql (17.4 (Debian 17.4-1.pgdg120+2))
+Type "help" for help.
+
+postgres=# create database school;
+CREATE DATABASE
+postgres=# \l
+
+   Name    |  Owner   | Encoding | Locale Provider |  Collate   |   Ctype    | Locale | ICU Rules |   Access privileges   
+-----------+----------+----------+-----------------+------------+------------+--------+-----------+-----------------------
+ postgres  | postgres | UTF8     | libc            | en_US.utf8 | en_US.utf8 |        |           | 
+ school    | postgres | UTF8     | libc            | en_US.utf8 | en_US.utf8 |        |           | 
+ template0 | postgres | UTF8     | libc            | en_US.utf8 | en_US.utf8 |        |           | =c/postgres          +
+           |          |          |                 |            |            |        |           | postgres=CTc/postgres
+ template1 | postgres | UTF8     | libc            | en_US.utf8 | en_US.utf8 |        |           | =c/postgres          +
+           |          |          |                 |            |            |        |           | postgres=CTc/postgres
+(4 rows)
+
+postgres=# exit
+```
+
+* Compose down untuk menghapus isi dalam resource `compose.yaml` dan kemudian up lagi
+
+```
+docker compose down
+
+docker compose up
+```
+
+
+* Cek isi database lagi
+
+```
+$ docker container exec -it -u postgres example11-postgresql-1 psql
+
+
+psql (17.4 (Debian 17.4-1.pgdg120+2))
+Type "help" for help.
+
+postgres=# \l
+
+   Name    |  Owner   | Encoding | Locale Provider |  Collate   |   Ctype    | Locale | ICU Rules |   Access privileges   
+-----------+----------+----------+-----------------+------------+------------+--------+-----------+-----------------------
+ postgres  | postgres | UTF8     | libc            | en_US.utf8 | en_US.utf8 |        |           | 
+ school    | postgres | UTF8     | libc            | en_US.utf8 | en_US.utf8 |        |           | 
+ template0 | postgres | UTF8     | libc            | en_US.utf8 | en_US.utf8 |        |           | =c/postgres          +
+           |          |          |                 |            |            |        |           | postgres=CTc/postgres
+ template1 | postgres | UTF8     | libc            | en_US.utf8 | en_US.utf8 |        |           | =c/postgres          +
+           |          |          |                 |            |            |        |           | postgres=CTc/postgres
+(4 rows)
+```
