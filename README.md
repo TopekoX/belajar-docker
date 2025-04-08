@@ -1318,7 +1318,7 @@ ENTRYPOINT [ "java", "-jar", "/app.jar" ]
 
 4. Testing
 
-```json
+```
 curl localhost:8080/api/hello
 
 {"message":"Halo Bro"}
@@ -1429,7 +1429,7 @@ docker container run --rm --name=spring-boot-app-multistage -p 8080:8080 topekox
 
 5. Testing
 
-```json
+```
 curl localhost:8080/api/hello
 
 {"message":"Halo Bro"}
@@ -1830,7 +1830,7 @@ docker container run -d --rm --name webserver --network topekox-network -p 80:80
 
 5. Cek inspect network:
 
-```json
+```
 $ docker network inspect topekox-network 
 
 "Containers": {
@@ -1855,7 +1855,7 @@ terdapat 2 container di dalam network `topekox-network`.
 
 6. Test
 
-```json
+```
 $ curl localhost:80/api/hello
 
 {"message":"Halo Bro"}
@@ -2011,7 +2011,7 @@ myfile
 
 Untuk melihat lokasi data kita dapat melakukan inspect:
 
-```json
+```
 $ docker volume inspect topekox-volume 
 
 [
@@ -2279,7 +2279,7 @@ COPY load-balancer.conf /etc/nginx/conf.d/default.conf
 
 * `load-balancer.conf`
 
-```json
+```
 upstream backend {
   server spring-boot-app-1:8080;
   server spring-boot-app-2:8080;
@@ -2346,6 +2346,18 @@ docker compose up
 curl localhost:8080
 ```
 
+> Secara default nama container atau service dalam docker compose, akan dibuat secara otomatis oleh docker untuk mendefinisikan nama service secara manual tambahkan `container_name: <nama_container>`
+>Contoh:
+>
+> ```yaml
+> services:
+>   nginx:
+>     container_name: webserver
+>     image: nginx:stable-bullseye
+>     ports:
+>       - "8080:80"
+> ``` 
+
 ### ✅ Docker Compose Up & Down
 
 * `docker compose up` berfungsi untuk mendeploy aplikasi yang berada dalam script compose. Perintah ini akan mengunduh image, membuat container, network dan volume sesuai dengan docker compose.
@@ -2389,7 +2401,7 @@ networks:
 
 Lakukan `docker compose up` dan untuk mengecek jalankan perintah:
 
-```json
+```
 $ docker network inspect topekox-network 
 
 "Containers": {
@@ -2502,3 +2514,191 @@ postgres=# \l
            |          |          |                 |            |            |        |           | postgres=CTc/postgres
 (4 rows)
 ```
+
+## 📖 Studi Kasus Docker Compose (Spring Boot Docker menggunakan Database dan Docker Volume)
+
+Kita akan menggunakan contoh pada studi kasus sebelumnya menggunakan pendekatan docker compose.
+
+![docker spring boot postgres with volume](/img/docker5.png)
+
+### ✅ Database Postgresql
+
+1. Kita akan membuat docker compose dengan catatan network dan volume sudah ada, dan membuat service p
+
+```yaml
+services:
+  postgresql:
+    container_name: postgresql
+    image: postgres:17.4
+    environment:
+      - POSTGRES_PASSWORD=postgres
+    networks:
+      - topekox-network
+    volumes:
+      - topekox-volume:/var/lib/postgresql/data
+networks:
+  topekox-network:
+    driver: bridge
+    external: true
+volumes:
+  topekox-volume:
+    driver: local
+```
+
+2. `docker compose up -d`.
+
+Output: 
+
+```
+[+] Running 1/1
+ ✔ Container postgresql              Started 
+```
+
+3. Masuk ke bash postgresql melalui bash container:
+
+```
+$ docker exec -it postgresql bash
+
+root@4c772857215a:/# psql -U postgres
+psql (17.4 (Debian 17.4-1.pgdg120+2))
+Type "help" for help.
+
+postgres=# create database springbootapp;
+CREATE DATABASE
+postgres=# 
+```
+
+### ✅ Membuat Backend
+
+1. Menambahkan service spring boot pada docker compose:
+
+```yaml
+services:
+  postgresql:
+    container_name: postgresql
+    image: postgres:17.4
+    environment:
+      - POSTGRES_PASSWORD=postgres
+    networks:
+      - topekox-network
+    volumes:
+      - topekox-volume:/var/lib/postgresql/data
+  springboot:
+    image: topekox/springboot-dto-pagination:0.0.1
+    networks:
+      - topekox-network
+    environment:
+      - DATABASE_ADDR=postgresql
+      - DATABASE_USERNAME=postgres
+      - DATABASE_PASSWORD=postgres
+      - DATABASE_NAME=springbootapp
+networks:
+  topekox-network:
+    driver: bridge
+    external: true
+volumes:
+  topekox-volume:
+    driver: local
+```
+
+2. Karena pada contoh kasus ini kita akan membuat 2 aplikasi spring boot dari image yang sama kita perlu melakukan scaling.
+
+```
+docker compose up --scale springboot=2 -d
+```
+
+Output:
+
+```
+[+] Running 3/3
+ ✔ Container postgresql              Started                                                                    0.3s 
+ ✔ Container example12-springboot-1  Started                                                                    0.7s 
+ ✔ Container example12-springboot-2  Started    
+ ```
+
+> __Penting__: Dalam compose scale, tidak diperkenangkan menggunakan `container_name`, karena docker akan membuat name service secara otomatis secara berurutan.
+
+### ✅ Membuat Service Nginx
+
+1. Membuat `load-balancer.conf` dan `Dockerfile`
+
+* `Dockerfile`
+
+```docker
+FROM nginx:stable-bullseye
+COPY load-balancer.conf /etc/nginx/conf.d/default.conf
+```
+
+* `load-balancer.conf`, sesuaikan nama container dengan service yang dibuat docker compose:
+
+```
+upstream backend {
+  server example12-springboot-1:8080;
+  server example12-springboot-2:8080;
+}
+
+server {
+  listen 80;
+
+  location / {
+    proxy_pass http://backend;
+  }
+}
+```
+
+2. Build menjadi image
+
+```
+docker image buiild -t topekox/nginx:0.0.2 .
+```
+
+3. Menambahkan service nginx pada docker compose:
+
+```yaml
+services:  
+  postgresql:
+    container_name: postgresql
+    image: postgres:17.4
+    environment:
+      - POSTGRES_PASSWORD=postgres
+    networks:
+      - topekox-network
+    volumes:
+      - topekox-volume:/var/lib/postgresql/data
+  springboot:
+    image: topekox/springboot-dto-pagination:0.0.1
+    networks:
+      - topekox-network
+    environment:
+      - DATABASE_ADDR=postgresql
+      - DATABASE_USERNAME=postgres
+      - DATABASE_PASSWORD=postgres
+      - DATABASE_NAME=springbootapp
+  nginx:
+    image: topekox/nginx:0.0.2
+    ports:
+      - 80:80
+    networks:
+      - topekox-network
+networks:
+  topekox-network:
+    driver: bridge
+    external: true
+volumes:
+  topekox-volume:
+    driver: local
+```
+
+4. Docker Compose Up
+
+```
+$ docker compose up --scale springboot=2 -d
+
+[+] Running 4/4
+ ✔ Container example12-nginx-1       Started                                                                    0.5s 
+ ✔ Container example12-springboot-1  Started                                                                    0.5s 
+ ✔ Container postgresql              Started                                                                    0.4s 
+ ✔ Container example12-springboot-2  Started                           
+ ```
+
+ 5. Uji coba dengan menggunakan cURL, postman dll. ke alamat `localhost:80/api/product`.

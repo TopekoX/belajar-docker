@@ -1,0 +1,32 @@
+services:  
+  postgresql:
+    container_name: postgresql
+    image: postgres:17.4
+    environment:
+      - POSTGRES_PASSWORD=postgres
+    networks:
+      - topekox-network
+    volumes:
+      - topekox-volume:/var/lib/postgresql/data
+  springboot:
+    image: topekox/springboot-dto-pagination:0.0.1
+    networks:
+      - topekox-network
+    environment:
+      - DATABASE_ADDR=postgresql
+      - DATABASE_USERNAME=postgres
+      - DATABASE_PASSWORD=postgres
+      - DATABASE_NAME=springbootapp
+  nginx:
+    image: topekox/nginx:0.0.2
+    ports:
+      - 80:80
+    networks:
+      - topekox-network
+networks:
+  topekox-network:
+    driver: bridge
+    external: true
+volumes:
+  topekox-volume:
+    driver: local
