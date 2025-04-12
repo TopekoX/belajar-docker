@@ -104,7 +104,117 @@ Perintah `docker image inspect` digunakan untuk menampilkan informasi detail dar
 $ docker image inspect <nama_image>:<tag>
 ```
 
-#### ✔️ Docker Container Inspect
+### ✅ Docker Image History
+
+Perintah `docker image history` digunakan untruk melihat history dari suatu image.
+
+```
+docker image history <nama_image>:<tag> 
+```
+
+## 2️⃣ Docker Container
+
+Container adalah instance dari image. Kita bisa membuat lebih dari satu container dari image yang sama. Container tersebut saling terisolasi sehingga tidak akan bentrok aplikasinya.
+
+![Docker Container Lifecycle](https://blog.techiescamp.com/content/images/2024/05/dockerlifecycle-2.gif)
+
+### ✅ Melihat semua Container baik yang running atau stoped
+
+```
+docker container ls -a
+```
+
+### ✅ Melihat semua Container yang running saja
+
+```
+docker container ls
+```
+
+atau
+
+```
+docker ps
+```
+
+### ✅ Membuat Container
+
+```
+docker container create --name <nama_container> <nama_image>:<tag>
+```
+
+Contoh:
+
+```
+docker container create --name contohhttpd httpd:latest
+```
+
+### ✅ Menjalankan Container
+
+```
+docker container start contohhttpd
+```
+
+atau kita bisa membuat container sekaligus menjalankannya. Contoh menjalankan container `nginx:stable`:
+
+```
+docker container run -p 8080:80 nginx:stable
+```
+
+Contoh mennjalankan container `nginx:stable` baru dengan beberapa properti `-d` (detach) untuk menjalankannya sebagai background (cek properti dengan perintah `--help`):
+
+```
+docker run -d -p 8081:80 --name=nginx2 nginx:stable
+```
+
+Menjalankan container sekaligus menghapusnya setelah selesai:
+
+```
+docker container run --rm <nama_image>:<tag>
+```
+
+### ✅ Menghentikan Container
+
+```
+docker container stop contohhttpd
+```
+
+atau
+
+```
+docker container stop <container_id>
+```
+
+atau
+
+```
+docker container kill <container_id>
+```
+
+> Perbedaan `kill` dan `stop`
+> * `docker container stop`
+>   * sinyal yang dikirim adalah SIGTERM yang dimana container akan melakukan shutdown dan melakukan terminate semua prosesnya secara normal.
+>   * Jika dalam 10 detik container tersebut belum mati, maka sinyal yang akan dikirim adalah SIGKILL, yang akan memaksa container mati seketika itu juga.
+> * `docker container kill`
+>   * Sinyal yang dikirim langsung SIGKILL, yang artinya container akan dipaksa mati seketika itu juga.
+
+
+### ✅ Menghapus Container
+
+```
+docker container rm contohhttpd
+```
+
+atau
+
+```
+docker container rm <container_id>
+```
+
+> Untuk menghapus container harus dalam keadaan stop. Jika ingin menghapus container dalam keadaan running gunakan perintah 
+
+### ✅ Docker Container Inspect
+
+#### ✔️ Contoh Docker Container Inspect
 
 * Kita akan melakukan pull dan menjalankan container Nginx Alpine:
 
@@ -358,114 +468,6 @@ $ docker container inspect --format='{{.NetworkSettings.IPAddress}}' c9c4704598c
 
 172.17.0.2
 ```
-
-### ✅ Docker Image History
-
-Perintah `docker image history` digunakan untruk melihat history dari suatu image.
-
-```
-docker image history <nama_image>:<tag> 
-```
-
-## 2️⃣ Docker Container
-
-Container adalah instance dari image. Kita bisa membuat lebih dari satu container dari image yang sama. Container tersebut saling terisolasi sehingga tidak akan bentrok aplikasinya.
-
-![Docker Container Lifecycle](https://blog.techiescamp.com/content/images/2024/05/dockerlifecycle-2.gif)
-
-### ✅ Melihat semua Container baik yang running atau stoped
-
-```
-docker container ls -a
-```
-
-### ✅ Melihat semua Container yang running saja
-
-```
-docker container ls
-```
-
-atau
-
-```
-docker ps
-```
-
-### ✅ Membuat Container
-
-```
-docker container create --name <nama_container> <nama_image>:<tag>
-```
-
-Contoh:
-
-```
-docker container create --name contohhttpd httpd:latest
-```
-
-### ✅ Menjalankan Container
-
-```
-docker container start contohhttpd
-```
-
-atau kita bisa membuat container sekaligus menjalankannya. Contoh menjalankan container `nginx:stable`:
-
-```
-docker container run -p 8080:80 nginx:stable
-```
-
-Contoh mennjalankan container `nginx:stable` baru dengan beberapa properti `-d` (detach) untuk menjalankannya sebagai background (cek properti dengan perintah `--help`):
-
-```
-docker run -d -p 8081:80 --name=nginx2 nginx:stable
-```
-
-Menjalankan container sekaligus menghapusnya setelah selesai:
-
-```
-docker container run --rm <nama_image>:<tag>
-```
-
-### ✅ Menghentikan Container
-
-```
-docker container stop contohhttpd
-```
-
-atau
-
-```
-docker container stop <container_id>
-```
-
-atau
-
-```
-docker container kill <container_id>
-```
-
-> Perbedaan `kill` dan `stop`
-> * `docker container stop`
->   * sinyal yang dikirim adalah SIGTERM yang dimana container akan melakukan shutdown dan melakukan terminate semua prosesnya secara normal.
->   * Jika dalam 10 detik container tersebut belum mati, maka sinyal yang akan dikirim adalah SIGKILL, yang akan memaksa container mati seketika itu juga.
-> * `docker container kill`
->   * Sinyal yang dikirim langsung SIGKILL, yang artinya container akan dipaksa mati seketika itu juga.
-
-
-### ✅ Menghapus Container
-
-```
-docker container rm contohhttpd
-```
-
-atau
-
-```
-docker container rm <container_id>
-```
-
-> Untuk menghapus container harus dalam keadaan stop. Jika ingin menghapus container dalam keadaan running gunakan perintah 
 
 ### ✅ Melihat Log
 
