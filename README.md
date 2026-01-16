@@ -2395,6 +2395,8 @@ services:
     image: nginx:stable-bullseye
     ports:
       - "8080:80"
+    networks:
+      - topekox-network
 networks:
   topekox-networks:
     driver: bridge
