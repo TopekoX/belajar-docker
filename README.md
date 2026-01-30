@@ -1257,7 +1257,7 @@ docker container run -it --rm <nama_image>:<tag>
 
 ## 5️⃣ Push Image ke Repository
 
-![docker flow](img/docker-flow.svg)
+<img src="/img/docker-flow.svg">
 
 Agar image bisa digunakan secara public kita perlu melakukan deploy image ke docker registry dalam hal ini kita menggunakan docker hub.
 
