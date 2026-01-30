@@ -2531,7 +2531,7 @@ Kita akan menggunakan contoh pada studi kasus sebelumnya menggunakan pendekatan 
 
 ### ✅ Database Postgresql
 
-1. Kita akan membuat docker compose dengan catatan network dan volume sudah ada, dan membuat service p
+1. Kita akan membuat docker compose dengan catatan network dan volume sudah ada, dan membuat service postgresql.
 
 ```yaml
 services:
